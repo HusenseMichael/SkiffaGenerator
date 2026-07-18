@@ -54,7 +54,9 @@ export function isBodyModelMockable(model: skiffaCore.BodyContainer, mockables: 
   return (
     model.schemaId != null &&
     mockables.has(model.schemaId) &&
-    (model.contentType === "application/json" || model.contentType === "text/plain")
+    (model.contentType === "application/json" ||
+      model.contentType === "application/x-www-form-urlencoded" ||
+      model.contentType === "text/plain")
   );
 }
 

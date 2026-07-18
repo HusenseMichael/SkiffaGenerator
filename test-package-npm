@@ -11,11 +11,17 @@ ERROR=0
 for F in $(ls fixtures/specifications/*.yaml); do
   echo $(basename $F .yaml)
 
+  REQUEST_TYPES=""
+  if [ "$(basename $F)" = "urlencoded.yaml" ]; then
+    REQUEST_TYPES="--request-types application/x-www-form-urlencoded"
+  fi
+
   node packages/npm/skiffa-generator/bundled/program.js package \
     $F \
     --package-directory generated/npm/$(basename $F .yaml) \
     --package-name $(basename $F .yaml) \
     --package-version "0.0.0" \
+    $REQUEST_TYPES
 
   if [ $? -ne 0 ]; then
     ERROR=1
@@ -36,5 +42,4 @@ for F in $(ls fixtures/specifications/*.yaml); do
 done;
 
 exit $ERROR
-
 

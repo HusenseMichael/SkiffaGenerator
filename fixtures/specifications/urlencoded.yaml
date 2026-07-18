@@ -1,0 +1,28 @@
+openapi: 3.0.3
+
+info:
+  title: URL-encoded form transport
+  version: 0.1.0
+
+paths:
+  /logout:
+    post:
+      operationId: logout
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - csrfToken
+              properties:
+                csrfToken:
+                  type: string
+                  example: a+b c/%
+                returnTo:
+                  type: string
+                  example: /spaces?name=M\u00fcnchen
+      responses:
+        "204":
+          description: Logged out

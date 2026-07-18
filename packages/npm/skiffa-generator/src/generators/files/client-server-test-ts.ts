@@ -330,6 +330,7 @@ function* generateOperationTest(
 
         switch (requestBodyModel.contentType) {
           case "text/plain":
+          case "application/x-www-form-urlencoded":
           case "application/json": {
             const validateFunctionName = getIsBodyFunction(names, requestBodyModel);
             assert(validateFunctionName != null);

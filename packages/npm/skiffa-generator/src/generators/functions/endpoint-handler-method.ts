@@ -610,6 +610,43 @@ function* generateBody(
         break;
       }
 
+      case "application/x-www-form-urlencoded": {
+        const bodySchemaId = bodyModel.schemaId;
+        const bodyTypeName = bodySchemaId == null ? bodySchemaId : names[bodySchemaId];
+        const isBodyTypeFunction = getIsBodyFunction(names, bodyModel);
+
+        yield itt`
+          try {
+            requestEntity = await lib.deserializeUrlEncodedForm(
+              serverIncomingRequest.stream
+            ) as ${bodyTypeName == null ? "unknown" : `types.${bodyTypeName}`};
+          } catch (error) {
+            if (error instanceof lib.UrlEncodedFormError) {
+              throw new lib.ServerRequestEntityValidationFailed(
+                "",
+                "valid application/x-www-form-urlencoded entity",
+              );
+            }
+            throw error;
+          }
+        `;
+
+        if (isBodyTypeFunction != null) {
+          yield itt`
+            if(validateIncomingEntity) {
+              if(!validators.${isBodyTypeFunction}(requestEntity)) {
+                const lastError = validators.getLastValidationError();
+                throw new lib.ServerRequestEntityValidationFailed(
+                  lastError.path,
+                  lastError.rule,
+                );
+              }
+            }
+          `;
+        }
+        break;
+      }
+
       default: {
         yield itt`
           requestEntity = async function* (signal){

@@ -485,7 +485,7 @@ export function* generateClientOperationFunction(
               case "cookie": {
                 yield itt`
                 if(configuration.${getAuthenticationMemberName(authenticationModel)} != null) {
-                  cookieParameters.append(${JSON.stringify(authenticationModel.parameterName)}, configuration.${getAuthenticationMemberName(authenticationModel)});
+                  lib.addParameter(cookieParameters, ${JSON.stringify(authenticationModel.parameterName)}, configuration.${getAuthenticationMemberName(authenticationModel)});
                 }
               `;
                 break;
@@ -553,7 +553,7 @@ export function* generateClientOperationFunction(
         "", "; ", "=",
       );
       if(cookie !== ""){
-        requestHeaders.append("set-cookie", cookie);
+        requestHeaders.append("cookie", cookie);
       }
 
       requestHeaders.append("accept", lib.stringifyAcceptHeader(accept.${operationAcceptConstName}));
@@ -657,6 +657,31 @@ export function* generateClientOperationFunction(
 
           yield itt`
             const stream = lib.serializeTextValue(String(entity));
+            body = await lib.collectStream(stream);
+          `;
+
+          break;
+        }
+
+        case "application/x-www-form-urlencoded": {
+          const isBodyTypeFunction = getIsBodyFunction(names, bodyModel);
+
+          if (isBodyTypeFunction != null) {
+            yield itt`
+              if(configuration.validateOutgoingEntity) {
+                if(!validators.${isBodyTypeFunction}(entity)) {
+                  const lastError = validators.getLastValidationError();
+                  throw new lib.ClientResponseEntityValidationFailed(
+                    lastError.path,
+                    lastError.rule,
+                  );
+                }
+              }
+            `;
+          }
+
+          yield itt`
+            const stream = lib.serializeUrlEncodedForm(entity);
             body = await lib.collectStream(stream);
           `;
 
