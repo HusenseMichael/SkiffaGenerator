@@ -216,14 +216,16 @@ function* generateBody(
             if (parseParameterFunction == null) {
               return `
                 ${parameterName}: 
-                lib.first(lib.getParameterValues(pathParameters, ${JSON.stringify(parameterModel.name)})),
+                lib.first(lib.getParameterValues(serverIncomingRequest.headers, ${JSON.stringify(
+                  parameterModel.name.toLowerCase(),
+                )})),
               `;
             }
 
             return `
             ${parameterName}: 
                 parsers.${parseParameterFunction}(lib.getParameterValues(serverIncomingRequest.headers, ${JSON.stringify(
-                  parameterModel.name,
+                  parameterModel.name.toLowerCase(),
                 )})),
             `;
           }),
@@ -424,7 +426,9 @@ function* generateBody(
             case "header": {
               yield itt`
                 ${getAuthenticationMemberName(authenticationModel)}:
-                  lib.first(lib.getParameterValues(serverIncomingRequest.headers, ${JSON.stringify(authenticationModel.parameterName)})),
+                  lib.first(lib.getParameterValues(serverIncomingRequest.headers, ${JSON.stringify(
+                    authenticationModel.parameterName!.toLowerCase(),
+                  )})),
               `;
               break;
             }

@@ -8,6 +8,14 @@ paths:
   /logout:
     post:
       operationId: logout
+      parameters:
+        - name: Origin
+          in: header
+          required: true
+          schema:
+            type: string
+      security:
+        - Csrf: []
       requestBody:
         required: true
         content:
@@ -26,3 +34,10 @@ paths:
       responses:
         "204":
           description: Logged out
+
+components:
+  securitySchemes:
+    Csrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token

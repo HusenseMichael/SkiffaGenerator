@@ -46,10 +46,19 @@ test("generated URL-encoded client and server use a strict typed transport", asy
   });
   let handlerCalls = 0;
   let receivedEntity: unknown;
-  apiServer.registerLogoutOperation(async (entity: unknown) => {
-    handlerCalls++;
-    receivedEntity = entity;
-  });
+  let receivedParameters: unknown;
+  let receivedAuthentication: unknown;
+  apiServer.registerCsrfAuthentication(async (credential: string) =>
+    credential === "csrf-value" ? { credential } : undefined,
+  );
+  apiServer.registerLogoutOperation(
+    async (parameters: unknown, entity: unknown, authentication: unknown) => {
+      handlerCalls++;
+      receivedParameters = parameters;
+      receivedEntity = entity;
+      receivedAuthentication = authentication;
+    },
+  );
   apiServer.registerMiddleware(lib.createErrorMiddleware());
 
   await using listener = await lib.listen(apiServer, {});
@@ -57,13 +66,16 @@ test("generated URL-encoded client and server use a strict typed transport", asy
   const url = new URL("/logout", baseUrl);
 
   await generatedClient.logout(
+    { origin: "https://app.example" },
     {
       csrfToken: "a+b c/%",
       returnTo: "/spaces?name=\u732b",
     },
-    { baseUrl },
+    { baseUrl, csrf: "csrf-value" },
   );
   assert.equal(handlerCalls, 1);
+  assert.deepEqual(receivedParameters, { origin: "https://app.example" });
+  assert.deepEqual(receivedAuthentication, { csrf: { credential: "csrf-value" } });
   assert.equal(Object.getPrototypeOf(receivedEntity), null);
   const receivedForm = receivedEntity as Record<string, string>;
   assert.equal(receivedForm.csrfToken, "a+b c/%");
@@ -71,7 +83,11 @@ test("generated URL-encoded client and server use a strict typed transport", asy
 
   const prototypeResponse = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      origin: "https://app.example",
+      "x-csrf-token": "csrf-value",
+    },
     body: "csrfToken=value&__proto__=safe",
   });
   assert.equal(prototypeResponse.status, 204);
@@ -84,7 +100,11 @@ test("generated URL-encoded client and server use a strict typed transport", asy
 
   const duplicateResponse = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      origin: "https://app.example",
+      "x-csrf-token": "csrf-value",
+    },
     body: "csrfToken=first&csrfToken=second",
   });
   assert.equal(duplicateResponse.status, 400);
@@ -92,7 +112,11 @@ test("generated URL-encoded client and server use a strict typed transport", asy
 
   const oversizedResponse = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      origin: "https://app.example",
+      "x-csrf-token": "csrf-value",
+    },
     body: `csrfToken=${"x".repeat(lib.urlEncodedFormMaximumBytes)}`,
   });
   assert.equal(oversizedResponse.status, 400);
@@ -102,6 +126,8 @@ test("generated URL-encoded client and server use a strict typed transport", asy
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+      origin: "https://app.example",
+      "x-csrf-token": "csrf-value",
     },
     body: "csrfToken=value",
   });
